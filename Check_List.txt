@@ -1,0 +1,9 @@
+AppStat check list before exam
+- Monte Carlo - Transformation
+- Monte Carlo - Accept/Reject
+- Work on calibrations
+- Prepare a Latex document ahead of time.
+
+Maybe:
+- Outlier code?
+- 

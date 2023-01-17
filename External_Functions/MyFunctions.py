@@ -5,6 +5,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import stats
+import sympy as sp
+import numpy.random as r
 
 def matplotlib_plotparameters():
     '''This function sets the default parameters for matplotlib plots.'''
@@ -198,3 +200,123 @@ def fisher_disc(species_a, species_b):
 
     return fisher_a, fisher_b, wf
  
+def normalize(function, range):
+    """
+    Description:
+    ------------
+    Normalize a function.
+
+    Parameters:
+    -----------
+    function : function
+        The function to be normalized.
+    range : tuple
+        The range of the function.
+    
+    Returns:
+    --------
+    C : float
+        The normalization constant.
+    """
+    x = sp.symbols('var')
+    C = sp.symbols('norm')
+    integration = sp.integrate(function(x,C),(x,range[0],range[1]))
+    return sp.solve(integration-1, C)
+
+
+def tranform_method(function,var,Npoints,limits,inv_func = False):
+    """
+    Description:
+    ------------
+    Generate random numbers from a function using the transform method.
+
+    IMPORTANT: The function and variable should be defined through sympy.
+
+    Parameters:
+    -----------
+    function : function
+        The function to generate random numbers from.
+    var : string
+        The variable of the function.
+    Npoints : int
+        The number of random numbers to generate.
+    limits : tuple
+        The range of the function.
+    inv_func : bool
+        If True, the inverse function options are printed.
+    
+    Returns:
+    --------
+    Generated data : array_like
+        The random numbers distributed according to the function.
+    """
+
+    full = sp.integrate(function,(var,limits[0],limits[1]))
+
+    # First find the inverse of the CDF
+    F = sp.integrate(function,(var,limits[0],var))/full
+
+    # Now find the inverse of the CDF 
+    y = sp.symbols('y', positive = True, real=True) 
+    F_inv = sp.solve(F-y,var)
+
+    if len(F_inv) > 1: 
+        F_inv_pos = F_inv[1]
+    else:
+        F_inv_pos = F_inv[0]
+    if inv_func == True:
+        print(F_inv)
+    
+    inv_func = sp.lambdify(y,F_inv_pos)
+    # Now generate the random numbers
+    u = np.random.uniform(0,1,Npoints)
+    return inv_func(u)
+
+def acc_rej(function,norm, Npoints, limits, data = False):
+    """
+    Description:
+    ------------
+    Generate random numbers from a function using the acceptance-rejection method.
+
+    Parameters:
+    -----------
+    function : function
+        The function to generate random numbers according to.
+    norm : float
+        The normalization constant of the function.
+    Npoints : int
+        The number of random numbers to generate.
+    limits : tuple
+        x_min,x_max,ymax.
+    data : bool
+        If True, the number of tries during the loop and the efficiency of the algorithm are also retuned.
+    
+    Returns:
+    --------
+    Generated data : array_like
+        The random numbers distributed according to the function.
+
+    Notes:
+    ------
+    The function should be normalized.
+    
+    """
+
+    x_accepted = np.zeros(Npoints)
+    xmin, xmax, ymax = limits[0], limits[1], limits[2]
+    Ntry = 0
+
+    for i in range(Npoints):
+        while True:
+            Ntry += 1                    # Count the number of tries, to get efficiency/integral
+            x = r.uniform(xmin, xmax)    # Range that f(x) is defined/wanted in
+            y = r.uniform(0, ymax)       # Upper bound of the function
+            if (y < function(x,norm)) :
+                break
+        x_accepted[i] = x
+    
+    efficiency = Npoints/Ntry
+    if data == True:
+        return x_accepted, Ntry, efficiency
+    else:
+        return x_accepted
