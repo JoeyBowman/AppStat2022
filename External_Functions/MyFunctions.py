@@ -80,6 +80,7 @@ def chi2_prob(minuit, dof):
     Description:
     ------------
     This function calculates the chi2 probability from a minuit fit.
+    REMEMBER: If it is binned data use length of bin centers NOT length of data.
     
     Parameters:
     -----------
@@ -190,7 +191,7 @@ def fisher_disc(species_a, species_b):
     cov_sum = cov_a + cov_b
 
     #The Fisher weights are the inverse of the sum of the covariance matrices:
-    wf = np.dot(np.linalg.inv(cov_sum), (mean_a - mean_b))
+    wf = np.linalg.inv(cov_sum)@(mean_a - mean_b)
 
 
     #Calculate the Fisher discriminant:
@@ -320,3 +321,112 @@ def acc_rej(function,norm, Npoints, limits, data = False):
         return x_accepted, Ntry, efficiency
     else:
         return x_accepted
+
+def bins_create(data, Nbins):
+    """
+    Description:
+    ------------
+    Create bins for a given data set.
+    
+    Parameters:
+    -----------
+    data : array_like
+        The data to be binned.
+    Nbins : int
+        The number of bins.
+
+    Returns:
+    --------
+    bin_width : float
+        The width of the bins.
+    bin_edges : tuple
+        The edges of the bins.
+    """
+    dmin, dmax = np.min(data), np.max(data)
+    bin_width = (dmax - dmin)/Nbins
+    return bin_width, (dmin, dmax)
+
+
+def hist_create(data, Nbins, bin_width = None, datamin = None, datamax = None,plot=False, type='step',labe='Data',colour='black'):
+    """
+    Description:
+    ------------
+    Create a histogram from a given data set with counts in bins, poissonian errors on bins, the bin centers and the bin widths.
+    If no bin width or data range is given, the function makes it's own bins from the data.
+
+    Parameters:
+    -----------
+    data : array_like
+        The data to be binned.
+    Nbins : int
+        The number of bins.
+    bin_width : float
+        The width of the bins.
+    datamin : float
+        The minimum of the data.
+    datamax : float
+        The maximum of the data.
+    plot : bool
+        If True, the histogram is plotted.
+    type : string
+        The type of histogram to be plotted.
+    labe : string
+        The label of the histogram.
+    colour : string
+        The colour of the histogram.
+
+    Returns:
+    --------
+    count_int : array_like
+        The counts in the bins.
+    error_count_int : array_like
+        The poissonian errors on the counts in the bins.
+    center_bins_int : array_like
+        The centers of the bins.
+    bin_width : float
+        The width of the bins.
+    """
+
+
+    if bin_width == None and datamin == None and datamax == None:    
+        datamin, datamax = np.min(data), np.max(data)     # The minimum and maximum of the data
+        bin_width = (datamax - datamin) / Nbins           # The width of the bins
+
+    count_int,bins_int,_ = plt.hist(data, bins=Nbins, range=(datamin,datamax), histtype=type, label=labe, color=colour)
+    mask_int = count_int > 0
+
+
+    count_int = count_int[mask_int]
+    error_count_int = np.sqrt(count_int)
+    center_bins_int = (bins_int[:-1] + bins_int[1:]) / 2
+    center_bins_int = center_bins_int[mask_int]
+    if plot == True:
+        plt.errorbar(center_bins_int, count_int, yerr=error_count_int, fmt='o', label='Data')
+    
+    return count_int, error_count_int, center_bins_int, bin_width, datamin, datamax
+
+
+def gauss(x, mean, sigma,N):
+    """
+    Description:
+    ------------
+    A gaussian function.
+
+    Parameters:
+    -----------
+    x : array_like
+        The x values.
+    mean : float
+        The mean of the gaussian.
+    sigma : float
+        The standard deviation of the gaussian.
+    N : float
+        The normalization constant of the gaussian.
+
+    Returns:
+    --------
+    Gaussian : array_like
+        The gaussian function.
+    """
+
+    return N*stats.norm.pdf(x, mean, sigma)
