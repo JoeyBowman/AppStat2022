@@ -392,7 +392,7 @@ def hist_create(data, Nbins, bin_width = None, datamin = None, datamax = None,pl
         datamin, datamax = np.min(data), np.max(data)     # The minimum and maximum of the data
         bin_width = (datamax - datamin) / Nbins           # The width of the bins
 
-    count_int,bins_int,_ = plt.hist(data, bins=Nbins, range=(datamin,datamax), histtype=type, label=labe, color=colour)
+    count_int,bins_int,_ = plt.hist(data, bins=Nbins, range=(datamin,datamax), histtype=type, label=labe, color=colour);
     mask_int = count_int > 0
 
 
@@ -430,3 +430,19 @@ def gauss(x, mean, sigma,N):
     """
 
     return N*stats.norm.pdf(x, mean, sigma)
+
+def profile_x(x, y, bins=(50, 50), xyrange=[(0, 50), (-1,1)]):
+
+    H, xedges, yedges = np.histogram2d(x, y, bins=bins, range=xyrange)
+    x_center = 0.5*(xedges[1:] + xedges[:-1])
+    y_center = 0.5*(yedges[1:] + yedges[:-1])
+
+    wsums = H.sum(1)
+
+    mask = wsums > 0
+
+    mean = (H*y_center).sum(1)[mask] / wsums[mask]
+    mean_squared = (H*y_center**2).sum(1)[mask] / wsums[mask]
+    std = np.sqrt( mean_squared - mean**2 ) / np.sqrt(wsums[mask]) 
+
+    return x_center[mask], mean, std
